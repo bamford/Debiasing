@@ -1,4 +1,4 @@
-data_file = '/Volumes/SD_Extra/galaxy_zoo_nsa_matching/nsa_all_gz_to_debias.csv'
+data_file = '/Volumes/SD_Extra/galaxy_zoo_nsa_matching/debias/nsa_to_debias_with_fractions.csv'
 output_directory = '/Volumes/SD_Extra/galaxy_zoo_nsa_matching/debias/'
 
 logistic_bounds = ((0.5, 10), (-10, 10))
@@ -17,5 +17,5 @@ n_per_z = 50
 low_signal_limit = 100
 clip_percentile = 5
 
-volume_redshift_limits = (0.03, 0.085)
-survey_mag_limit = 19.5
+volume_redshift_limits = (0.03, 0.10)
+survey_mag_limit = 19.8
