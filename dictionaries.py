@@ -1,11 +1,10 @@
 from collections import OrderedDict
 import params
 import numpy as np
-import math
 
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 '''List the functions (and their respective inverses)'''
+
 
 def f_logistic(x, k, c):
     # Function to fit the data bin output from the raw plot function
@@ -31,38 +30,45 @@ def i_f_exp_pow(y, k, c):
     # inverse of f_exp_pow
     ok = k > 0
     x = np.zeros_like(y) - np.inf
-    x[ok] = -(-np.log(y[ok]) /k[ok] )**(1.0/c[ok])
+    x[ok] = -(-np.log(y[ok]) / k[ok])**(1.0 / c[ok])
     return x
-#-------------------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------------
 '''This dictionary lists all of the functions and bounds to be used in the
 to fit the data'''
 
 function_dictionary = {}
-function_dictionary['func'] = {0: f_logistic,
-                               1: f_exp_pow,
-                               #2: f_inv
-                               }
+function_dictionary['func'] = {
+    0: f_logistic,
+    1: f_exp_pow
+    # 2: f_inv
+}
 
-function_dictionary['bounds'] = {0: params.logistic_bounds,
-                                 1: params.exponential_bounds
-                                 #2: params.inverse_bounds,
-                                 }
+function_dictionary['bounds'] = {
+    0: params.logistic_bounds,
+    1: params.exponential_bounds
+    # 2: params.inverse_bounds,
+}
 
-function_dictionary['p0'] = {0: [3,-3],
-                             1: [2,1],
-                             #2: [1,1]
-                             }
+function_dictionary['p0'] = {
+    0: [3, -3],
+    1: [2, 1]
+    # 2: [1,1]
+}
 
-function_dictionary['i_func'] = {0: i_f_logistic,
-                                 1: i_f_exp_pow
-                                 #2:None
-                                 }
+function_dictionary['i_func'] = {
+    0: i_f_logistic,
+    1: i_f_exp_pow
+    # 2:None
+}
 
-function_dictionary['label'] = {0: 'logistic',
-                                1: 'exp. power'
-                                #2:'inverse'
-                                 }
-#-------------------------------------------------------------------------------
+function_dictionary['label'] = {
+    0: 'logistic',
+    1: 'exp. power'
+    # 2:'inverse'
+}
+# -------------------------------------------------------------------------------
 '''Make a dictionary of questions, answers, and which questions precede others
 '''
 
@@ -72,6 +78,7 @@ label_q = ['Smooth or features',
            'Bar',
            'Spiral',
            'Bulge prominence',
+           'Anything odd',
            'Roundedness',
            'Bulge shape',
            'Arm winding',
@@ -79,90 +86,102 @@ label_q = ['Smooth or features',
 
 
 # List of questions in order:
-q = ['features',
-     'edgeon',
-     'bar',
-     'spiral',
-     'bulge',
-     'round',
-     'bulgeshape',
-     'spiralwinding',
-     'spiralnumber']
+q = [
+    't01_smooth_or_features',
+    't02_edgeon',
+    't03_bar',
+    't04_spiral',
+    't05_bulge_prominence',
+    't06_odd',
+    't07_rounded',
+    't09_bulge_shape',
+    't10_arms_winding',
+    't11_arms_number'
+]
 
 # Answers for each of the questions in turn:
-a = [['smooth','features','star_or_artifact'],
-     ['yes','no'],
-     ['bar','no_bar'],
-     ['spiral','no_spiral'],
-     ['no_bulge','obvious','dominant'],
-     ['completely_round','in_between','cigar_shaped'],
-     ['rounded','boxy','no_bulge'],
-     ['tight','medium','loose'],
-     ['1','2','3','4','more_than_4'],
-     ]
+a = [
+    ['a01_smooth', 'a02_features_or_disk', 'a03_star_or_artifact'],
+    ['a04_yes', 'a05_no'],
+    ['a06_bar', 'a07_no_bar'],
+    ['a08_spiral', 'a09_no_spiral'],
+    ['a10_no_bulge', 'a11_just_noticeable', 'a12_obvious', 'a13_dominant'],
+    ['a14_yes', 'a15_no'],
+    ['a16_completely_round', 'a17_in_between', 'a18_cigar_shaped'],
+    ['a25_rounded', 'a26_boxy', 'a27_no_bulge'],
+    ['a28_tight', 'a29_medium', 'a30_loose'],
+    ['a31_1', 'a32_2', 'a33_3', 'a34_4', 'a36_more_than_4', 'a37_cant_tell']
+]
 
 # Answer labels (for plotting):
-label_a = [['Smooth','Features','Artifact'],
-           ['Yes','No'],
-           ['Yes','No'],
-           ['Yes','No'],
-           ['None','Noticeable','Obvious','Dominant'],
-           ['Round','In between','Cigar shaped'],
-           ['Rounded','Boxy','None'],
-           ['Tight','Medium','Loose'],
-           ['1','2','3','4','5+','??']]
+label_a = [
+    ['Smooth', 'Features', 'Artifact'],
+    ['Yes', 'No'],
+    ['Yes', 'No'],
+    ['Yes', 'No'],
+    ['None', 'Noticeable', 'Obvious', 'Dominant'],
+    ['Yes', 'No'],
+    ['Round', 'In between', 'Cigar shaped'],
+    ['Rounded', 'Boxy', 'None'],
+    ['Tight', 'Medium', 'Loose'],
+    ['1', '2', '3', '4', '5+', '??']
+]
 
 # 'Previously answered questions' for each question in turn:
-pre_q = [None
-         ,[0]
-         ,[0,1]
-         ,[0,1]
-         ,[0,1]
-         ,[0,1]
-         ,[0,1]
-         ,[0,1,3]
-         ,[0,1,3]]
+pre_q = [
+    None,
+    [0],
+    [0, 1],
+    [0, 1],
+    [0, 1],
+    None,
+    [0],
+    [0, 1],
+    [0, 1, 3],
+    [0, 1, 3],
+]
 
 # Required answers for each previously answered question:
-pre_a = [None
-         ,[1]
-         ,[1,1]
-         ,[1,1]
-         ,[1,1]
-         ,[1,1]
-         ,[1,1]
-         ,[1,1,0]
-         ,[1,1,0]]
+pre_a = [
+    None,
+    [1],
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    None,
+    [0],
+    [1, 0],
+    [1, 1, 0],
+    [1, 1, 0]
+]
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 '''Put all of this together in a single dictionary called "questions" '''
 
 questions = OrderedDict()
 
 for s in range(len(q)):
-    
+
     if pre_q[s] is not None:
-        pq = [q[v] for v in pre_q[s]] 
+        pq = [q[v] for v in pre_q[s]]
     else:
         pq = None
-    
-    questions[q[s]] = {'answers': a[s]
-                       ,'answerlabels': label_a[s]
-                       ,'questionlabel': label_q[s]
-                       ,'pre_questions': pq}
-    
+
+    questions[q[s]] = {
+        'answers': a[s],
+        'answerlabels': label_a[s],
+        'questionlabel': label_q[s],
+        'pre_questions': pq
+    }
+
     if pre_a[s] is not None:
-        pa_array = [questions[q[v]]['answers'] 
-		    for v in pre_q[s]]
-        answer_arrays = [pa_array[v] 
-			 for v in range(len(pre_a[s]))]
-        answer_indices = [pre_a[s][v] 
-			  for v in range(len(pre_a[s]))]
-        pa = [answer_arrays[v2][answer_indices[v2]] 
-	      for v2 in range(len(answer_indices))]
- 
+        pa_array = [questions[q[v]]['answers'] for v in pre_q[s]]
+        answer_arrays = [pa_array[v]for v in range(len(pre_a[s]))]
+        answer_indices = [pre_a[s][v] for v in range(len(pre_a[s]))]
+        pa = [answer_arrays[v2][answer_indices[v2]] for v2 in range(len(answer_indices))]
+
     else:
-        pa = None # if there are no previous questions
-    
+        pa = None  # if there are no previous questions
+
     questions[q[s]].update({'pre_answers': pa})
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
