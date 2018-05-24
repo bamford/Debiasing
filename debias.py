@@ -20,20 +20,20 @@ def debias(data,params=params,dictionaries=dictionaries,question='features',
     fv_debiased_bin = fit.debias_by_bin(data_sample.all_data,
                                         bins.voronoi_bins,bins.z_bins,
                                         question,answer)
-    
-    functionfit, function_, bounds = fit.fit_bins(data_sample,bins,
-                                                  function_dictionary,params,
-                                                  question,answer,
-                                                  verbose=verbose)
-    # function fitter...
-    fitted_k = fit.FitToBins(functionfit,'k',
-                      params.clip_percentile).get_kc_function(verbose=verbose)
-    fitted_c = fit.FitToBins(functionfit,'c',
-                      params.clip_percentile).get_kc_function(verbose=verbose)
-    fv, fv_debiased = fit.debias_data(data_sample.all_data,params,
-                                      fitted_k,fitted_c,function_,
-                                      question,answer)
-    fv_debiased[np.isfinite(fv_debiased) == False] = 0
+    if use_fit or not use_bin:
+        functionfit, function_, bounds = fit.fit_bins(data_sample,bins,
+                                                      function_dictionary,params,
+                                                      question,answer,
+                                                      verbose=verbose)
+        # function fitter...
+        fitted_k = fit.FitToBins(functionfit,'k',
+                          params.clip_percentile).get_kc_function(verbose=verbose)
+        fitted_c = fit.FitToBins(functionfit,'c',
+                          params.clip_percentile).get_kc_function(verbose=verbose)
+        fv, fv_debiased = fit.debias_data(data_sample.all_data,params,
+                                          fitted_k,fitted_c,function_,
+                                          question,answer)
+        fv_debiased[np.isfinite(fv_debiased) == False] = 0
 
     if use_fit is True:
         fv_debiased_final = fv_debiased
