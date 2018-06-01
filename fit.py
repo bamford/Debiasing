@@ -4,9 +4,10 @@ import math
 import numpy as np
 import params
 from scipy.optimize import minimize, curve_fit
+from tqdm import tqdm
 
 class FunctionFit():
-    
+
     def __init__(self,sample,params,bins,question,answer):
         self.sample = sample
         self.bins = bins
@@ -14,11 +15,11 @@ class FunctionFit():
         self.answer = answer
         self.params = params
         self.parameter_table = Table(names=('logR50','Mr','z','k','c','chisq','success'))
-        
+
     def chisq_fun(self,p, f, x, y):
         ''' chisquare function'''
         return ((f(x, *p) - y)**2).sum()
-        
+
     def cumfrac_fit(self,data,function_,append=True):
         q = self.question
         a = self.answer
@@ -26,16 +27,16 @@ class FunctionFit():
         fv_nonzero = fv != 0
         cf = np.linspace(0,1,len(fv))
         x, y = [np.log10(fv[fv_nonzero]),cf[fv_nonzero]]
-        
+
         x_fit = np.log10(np.linspace(10**(self.params.log_fv_range[0]), 1, 100))
         indices = np.searchsorted(x,x_fit)
         y_fit = y[indices.clip(0, len(y)-1)]
-        
+
         fit_setup = function_
         res =  minimize(self.chisq_fun, function_.p0,
                         args=(function_.function,x_fit,y_fit),
                         bounds=function_.bounds,method='SLSQP')
-        
+
         Mr = np.mean(data[params.Mr_column])
         logR50 = np.mean(data['logR50'])
         z_ = np.mean(data[params.z_column])
@@ -44,7 +45,7 @@ class FunctionFit():
             row = [logR50,Mr,z_,k,c,res.fun,res.success]
             self.parameter_table.add_row(row)
         return None
-    
+
 
 class Function():
     def __init__(self,function_dictionary,key):
@@ -52,9 +53,9 @@ class Function():
         self.bounds = function_dictionary['bounds'][key]
         self.p0 = function_dictionary['p0'][key]
         self.inverse_function = function_dictionary['i_func'][key]
-        self.label = function_dictionary['label'][key]    
-        
-        
+        self.label = function_dictionary['label'][key]
+
+
 class FitToBins():
     def __init__(self,functionfit,column='k',clip_percentile=5):
         self.fit_table = functionfit.parameter_table
@@ -77,12 +78,12 @@ class FitToBins():
                                     axis=0)
         else:
             self.in_sigma = np.full(len(parameter_table),True)
-        to_fit = np.all([self.ok_fit,self.in_sigma],axis=0) 
+        to_fit = np.all([self.ok_fit,self.in_sigma],axis=0)
         self.to_fit = to_fit
         # Set limits of the functions here:
-        self.min_ = self.fit_parameter[to_fit].min() 
+        self.min_ = self.fit_parameter[to_fit].min()
         self.max_ = self.fit_parameter[to_fit].max()
-        
+
     def kc_function(self,M_dependence,R_dependence,z_dependence):
         def kcfunc(x,A0,AM,AR,Az):
             M_term = self.get_term(AM,x[0],M_dependence,negative=True)
@@ -90,7 +91,7 @@ class FitToBins():
             z_term = self.get_term(Az,x[2],z_dependence)
             return A0 + M_term + R_term + z_term
         return kcfunc
-        
+
     def get_term(self,constant,var,t='linear',negative='False'):
         if negative is True:
             var = -var
@@ -108,12 +109,12 @@ class FitToBins():
             R_term = get_term(AR,x[1],R_dependence)
             z_term = get_term(Az,x[2],z_dependence)
             return A0 + M_term + R_term + z_term
-    
+
         return kcfunc
 
     def normalise(self,x):
         return (x - x.mean())/x.std()
-        
+
     def get_kc_function(self,verbose=True):
         M_dependencies = ('log','linear','exp')
         R_dependencies = ('log','linear','exp')
@@ -123,7 +124,7 @@ class FitToBins():
                                     'z_dependency','p_fit','chisq'),
                              dtype=('object','object','object','object',
                                     np.float32))
-    
+
         for M_dependency in M_dependencies:
             for R_dependency in R_dependencies:
                 for z_dependency in z_dependencies:
@@ -133,9 +134,9 @@ class FitToBins():
                     output_table.add_row(MRz_row)
         # Set the nan values to be very large (so they are automatically avoided!)
         output_table['chisq'][np.isfinite(output_table['chisq']) == False] = 10**8
-    
+
         # Choose best functions:
-        best_row = np.argmin(output_table['chisq']) 
+        best_row = np.argmin(output_table['chisq'])
         best_M_d = output_table['M_dependency'][best_row]
         best_R_d = output_table['M_dependency'][best_row]
         best_z_d = output_table['M_dependency'][best_row]
@@ -145,12 +146,12 @@ class FitToBins():
             print('--- Selected function ({}): ---'.format(self.column))
             print('{}(M),{}(R),{}(z)'.format(best_M_d,best_R_d,best_z_d))
         p_fit, _, fitted_table = self.fit_mrz(kcfunc)
-     
+
         self.kc_function = kcfunc
         self.p_fit = p_fit
         self.output_table = output_table
         self.fitted_table = fitted_table
-    
+
         return self
 
     def fit_mrz(self,kc_function,clip=None):
@@ -164,25 +165,25 @@ class FitToBins():
 
         xyz_ok = (xyz.T[self.to_fit]).T
         fit_parameter_ok = self.fit_parameter[self.to_fit]
-    
+
         # Fit to the data:
-        p_fit, _ = curve_fit(kc_function,xyz_ok,fit_parameter_ok,maxfev=10**5)  
+        p_fit, _ = curve_fit(kc_function,xyz_ok,fit_parameter_ok,maxfev=10**5)
         res = kc_function(xyz_ok,*p_fit) - fit_parameter_ok # k residuals
         res_normalised = self.normalise(res) # normalised k residuals
         # Remove the +-2sigma fits, and then redo the fitting:
         if clip != None:
-            clipped = np.absolute(res_normalised) < clip 
-            p_fit, _ = curve_fit(kc_function, (xyz_ok.T[clipped]).T, 
+            clipped = np.absolute(res_normalised) < clip
+            p_fit, _ = curve_fit(kc_function, (xyz_ok.T[clipped]).T,
                                  fit_parameter_ok[clipped],maxfev=10**5)
-    
+
         fitted_table[self.column + '_fit'] = kc_function(xyz,*p_fit)
         chisq = (fitted_table[self.column + '_fit'] - fitted_table[self.column])**2
         return p_fit, chisq.sum(), fitted_table
-      
+
 
 def fit_bins(sample,bins,function_dictionary,params,
              question='shape',answer='smooth',verbose=True):
-    
+
     log_function = Function(function_dictionary,0)
     exp_function = Function(function_dictionary,1)
     logfit = FunctionFit(sample,params,bins,question,answer)
@@ -197,7 +198,7 @@ def fit_bins(sample,bins,function_dictionary,params,
             in_vpz = np.all([in_vp,in_z],axis=0)
             logfit.cumfrac_fit(sample.all_data[in_vpz],log_function)
             expfit.cumfrac_fit(sample.all_data[in_vpz],exp_function)
-            
+
     chisq_log = np.sum(logfit.parameter_table['chisq'])
     chisq_exp = np.sum(expfit.parameter_table['chisq'])
     if verbose is True:
@@ -211,21 +212,21 @@ def fit_bins(sample,bins,function_dictionary,params,
     else:
         print('=> exp function preferred') if verbose is True else None
         return expfit, exp_function, params.exponential_bounds
-      
-      
+
+
 def debias_data(data,params,fitted_k,fitted_c,function_,
                 question='shape',answer='smooth'):
-    
+
     function = function_.function
     inverse_function = function_.inverse_function
-    
+
     fv_column = question + '_' + answer + params.fraction_suffix
     fv = data[fv_column]
     fv_debiased = np.zeros(len(fv))
     nonzero = fv > 0
     fv_nonzero = fv[nonzero]
     logfv = np.log10(fv_nonzero)
-    
+
     x = data[params.Mr_column][nonzero]
     y = data['logR50'][nonzero]
     z = data[params.z_column][nonzero]
@@ -233,23 +234,23 @@ def debias_data(data,params,fitted_k,fitted_c,function_,
     low_z_limit = params.volume_redshift_limits[0]
     xyz_low_z = xyz.copy()
     xyz_low_z[-1] = np.full(len(z),low_z_limit)
-   
+
     def fitted_parameter(xyz,f):
         p = f.kc_function(xyz,*f.p_fit)
         p[p <= f.min_] = f.min_
         p[p >= f.max_] = f.max_
         return p
-    
+
     k = fitted_parameter(xyz,fitted_k)
     k_low_z = fitted_parameter(xyz_low_z,fitted_k)
     c = fitted_parameter(xyz,fitted_c)
     c_low_z = fitted_parameter(xyz_low_z,fitted_c)
-    
+
     cumfrac = function(logfv, k, c)
-    logfv_debiased = inverse_function(cumfrac, k_low_z, c_low_z) 
+    logfv_debiased = inverse_function(cumfrac, k_low_z, c_low_z)
     debiased = 10**(logfv_debiased) # Get 'fv'.
     fv_debiased[nonzero] = debiased
-    
+
     return fv, fv_debiased
 
 
@@ -276,47 +277,61 @@ def sort_data(D):
     D_sorted = D[order]
     D_i_sorted = D_i[order]
     cumfrac = np.linspace(0,1,len(D))
-    
+
     D_table = Table(np.array([D_i_sorted,D_sorted,cumfrac]).T,
 		    names=('index','fv','cumfrac'))
     reorder = np.argsort(D_table['index'])
     D_table = D_table[reorder]
-    
+
     for f in np.unique(D_table['fv']):
         f_select = D_table['fv'] == f
         D_table['cumfrac'][f_select] = np.mean(D_table['cumfrac'][f_select])
-    
+
     return D_table
 
 
-def debias_by_bin(full_data,vbins,zbins,question,answer):
+def debias_by_bin(full_data,vbins,zbins,question,answer, return_tables=False):
     ''' Debias the data in a bin-by-bin basis'''
-    
+
     # Get the raw and debiased fractions:
     fraction_column = question + '_' + answer + params.fraction_suffix
     data_column = full_data[fraction_column]
     debiased_column = np.zeros(len(data_column))
+    v0_tables = []
+    vz_tables = []
+    dbi_tables = []
+    dbf_tables = []
 
-    for v in np.unique(vbins):
+    for v in tqdm(np.unique(vbins)):
         select_v = vbins == v
         zbins_v = zbins[select_v] # redshift bins for this voronoi bin.
-        
+
         data_v0 = data_column[(select_v) & (zbins == 1)]
-        v0_table = sort_data(data_v0) # Reference array (ie. the low-z sample 
+        v0_table = sort_data(data_v0) # Reference array (ie. the low-z sample
         # for each voronoi bin).
+        v0_tables.append(v0_table)
+        vz_tables.append([])
+        dbi_tables.append([])
+        dbf_tables.append([])
 
         for z in np.unique(zbins_v): # Now go through each bin in turn:
             select_z = zbins == z
-            
-            data_vz = data_column[(select_v) & (select_z)] 
+
+            data_vz = data_column[(select_v) & (select_z)]
             vz_table = sort_data(data_vz)
-            
+            vz_tables[-1].append(vz_table)
+
             # Now match to the low redshft sample:
             debiased_i = find_nearest(v0_table['cumfrac'],vz_table['cumfrac'])
             debiased_fractions = v0_table['fv'][debiased_i]
+            dbi_tables[-1].append(debiased_i)
+            dbf_tables[-1].append(debiased_fractions)
             debiased_column[(select_v) & (select_z)] = debiased_fractions
-    
+
     debiased_column[data_column == 0] = 0 # Don't 'debias up' 0s.
     debiased_column[data_column == 1] = 1 # Don't 'debias down' the 1s.
-    
-    return debiased_column
+
+    if return_tables:
+        return debiased_column, v0_tables, vz_tables, dbi_tables, dbf_tables
+    else:
+        return debiased_column
